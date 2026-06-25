@@ -2267,15 +2267,28 @@ Chaque fiche = la valeur actionnable extraite d'une vidéo YouTube, rangée au b
 </ul></div><a class="top" href="#home" title="Haut de page">↑</a></article></section></main>
 </div>
 <script>
-const q=document.getElementById('q'), fiches=[...document.querySelectorAll('.fiche')], secs=[...document.querySelectorAll('.catsec')];
+const q=document.getElementById('q');
+const fiches=[...document.querySelectorAll('.fiche')];
+const secs=[...document.querySelectorAll('.catsec')];
+const navcats=[...document.querySelectorAll('.navcat')];
+const navitems=[...document.querySelectorAll('.navitem[href^="#"]')].filter(a=>a.getAttribute('href')!=='#home');
+let searching=false;
 q.addEventListener('input',()=>{
  const t=q.value.trim().toLowerCase();
- fiches.forEach(f=>{f.classList.toggle('hidden', t && !f.textContent.toLowerCase().includes(t));});
+ searching=!!t;
+ const vis=new Set();
+ fiches.forEach(f=>{const hide=t && !f.textContent.toLowerCase().includes(t); f.classList.toggle('hidden',hide); if(!hide) vis.add(f.id);});
  secs.forEach(s=>{const any=[...s.querySelectorAll('.fiche')].some(f=>!f.classList.contains('hidden'));s.classList.toggle('hidden',!any);});
+ navitems.forEach(a=>{a.classList.toggle('hidden', t && !vis.has(a.getAttribute('href').slice(1)));});
+ navcats.forEach(c=>{
+   const items=[...c.querySelectorAll('.navitem')];
+   const any=items.some(a=>!a.classList.contains('hidden'));
+   c.classList.toggle('hidden', !!t && !any);
+   c.classList.toggle('open', !!t && any);
+ });
  document.getElementById('home').classList.toggle('hidden', !!t);
 });
-const navcats=[...document.querySelectorAll('.navcat')];
-function setActive(num){navcats.forEach(n=>{const h=n.querySelector('.navhead');const on=h&&h.getAttribute('href')==='#cat-'+num;n.classList.toggle('open',on);});}
+function setActive(num){if(searching)return;navcats.forEach(n=>{const h=n.querySelector('.navhead');n.classList.toggle('open', !!h && h.getAttribute('href')==='#cat-'+num);});}
 const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){setActive(e.target.id.replace('cat-',''));}});},{rootMargin:'-10% 0px -80% 0px'});
 secs.forEach(s=>io.observe(s));
 document.querySelectorAll('.navitem,.navhead').forEach(a=>a.addEventListener('click',()=>{if(innerWidth<880)document.querySelector('.sidebar').classList.remove('show');}));
