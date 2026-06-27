@@ -3584,11 +3584,23 @@ navcats.forEach(c=>{
   head.addEventListener('click',e=>{e.preventDefault(); if(searching) return; c.classList.toggle('open');});
 });
 
-// Surlignage de la fiche active dans la sidebar
+// Surlignage de la fiche active (scrollspy) : la fiche active est la DERNIÈRE
+// dont le haut est passé au-dessus d'une ligne à ~45% de la hauteur de l'écran.
+// → en scrollant vers le haut, on ne bascule sur la fiche du dessus que quand
+//   elle occupe vraiment ~la moitié haute de l'écran (pas dès qu'elle pointe).
+const ACTIVE_LINE=0.45;
 function setActiveItem(id){navitems.forEach(a=>a.classList.toggle('active', a.getAttribute('href')==='#'+id));}
+function updateActive(){
+  if(searching) return;
+  const line=innerHeight*ACTIVE_LINE;
+  let cur=null;
+  for(const f of fiches){ if(f.getBoundingClientRect().top<=line) cur=f; else break; }
+  if(cur) setActiveItem(cur.id); else navitems.forEach(a=>a.classList.remove('active'));
+}
 navitems.forEach(a=>a.addEventListener('click',()=>setActiveItem(a.getAttribute('href').slice(1))));
-const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting && !searching) setActiveItem(e.target.id);});},{rootMargin:'-15% 0px -75% 0px'});
-fiches.forEach(f=>io.observe(f));
+let ticking=false;
+addEventListener('scroll',()=>{if(!ticking){ticking=true;requestAnimationFrame(()=>{updateActive();ticking=false;});}},{passive:true});
+updateActive();
 
 // Recherche
 q.addEventListener('input',()=>{
