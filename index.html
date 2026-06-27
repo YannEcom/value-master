@@ -3584,22 +3584,35 @@ navcats.forEach(c=>{
   head.addEventListener('click',e=>{e.preventDefault(); if(searching) return; c.classList.toggle('open');});
 });
 
-// Surlignage de la fiche active avec HYSTÉRÈSE (bascule tardive dans les 2 sens).
-// On ne change de fiche que lorsque la fiche entrante occupe déjà ~80% de l'écran :
-//  - vers le BAS : on passe à la suivante quand SON haut atteint 20% (TOP_LINE)
-//  - vers le HAUT : on revient à la précédente quand le haut de l'active atteint 80% (BOT_LINE)
+// Suivi de la fiche active : surlignage + HYSTÉRÈSE (bascule tardive dans les 2 sens,
+// quand la fiche entrante occupe ~80% de l'écran) + accordéon qui SUIT le scroll
+// (ouvre la catégorie courante, ferme les autres) + la sidebar DÉFILE pour garder
+// la fiche active visible.
 const TOP_LINE=0.2, BOT_LINE=0.8;
-let activeIdx=0;
+const sidebar=document.querySelector('.sidebar');
+let activeIdx=0, lock=0;
 function setActiveItem(id){navitems.forEach(a=>a.classList.toggle('active', a.getAttribute('href')==='#'+id));}
+function openCatOf(f){                 // accordéon : seule la catégorie de la fiche reste ouverte
+  const cat='#cat-'+f.getAttribute('data-cat');
+  navcats.forEach(c=>{const h=c.querySelector('.navhead');c.classList.toggle('open', !!h && h.getAttribute('href')===cat);});
+}
+function revealInSidebar(id){          // fait défiler la sidebar pour montrer la fiche active
+  const el=navitems.find(a=>a.getAttribute('href')==='#'+id);
+  if(!el || el.offsetParent===null) return;
+  const sr=sidebar.getBoundingClientRect(), er=el.getBoundingClientRect(), padT=130, padB=16;
+  if(er.top < sr.top+padT) sidebar.scrollTop += er.top-(sr.top+padT);
+  else if(er.bottom > sr.bottom-padB) sidebar.scrollTop += er.bottom-(sr.bottom-padB);
+}
+function focusFiche(f){openCatOf(f); setActiveItem(f.id); revealInSidebar(f.id);}
 function updateActive(){
-  if(searching || !fiches.length) return;
+  if(searching || !fiches.length || Date.now()<lock) return;
   const H=innerHeight, top=H*TOP_LINE, bot=H*BOT_LINE;
   while(activeIdx<fiches.length-1 && fiches[activeIdx+1].getBoundingClientRect().top<=top) activeIdx++;
   while(activeIdx>0 && fiches[activeIdx].getBoundingClientRect().top>=bot) activeIdx--;
   if(activeIdx===0 && fiches[0].getBoundingClientRect().top>bot){navitems.forEach(a=>a.classList.remove('active'));return;}
-  setActiveItem(fiches[activeIdx].id);
+  focusFiche(fiches[activeIdx]);
 }
-navitems.forEach(a=>a.addEventListener('click',()=>{const id=a.getAttribute('href').slice(1);const i=fiches.findIndex(f=>f.id===id);if(i>=0)activeIdx=i;setActiveItem(id);}));
+navitems.forEach(a=>a.addEventListener('click',()=>{const i=fiches.findIndex(f=>'#'+f.id===a.getAttribute('href'));if(i>=0){activeIdx=i;lock=Date.now()+700;focusFiche(fiches[i]);}}));
 let ticking=false;
 addEventListener('scroll',()=>{if(!ticking){ticking=true;requestAnimationFrame(()=>{updateActive();ticking=false;});}},{passive:true});
 updateActive();
