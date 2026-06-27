@@ -3584,20 +3584,22 @@ navcats.forEach(c=>{
   head.addEventListener('click',e=>{e.preventDefault(); if(searching) return; c.classList.toggle('open');});
 });
 
-// Surlignage de la fiche active (scrollspy) : la fiche active est la DERNIÈRE
-// dont le haut est passé au-dessus d'une ligne BASSE (~80% de la hauteur).
-// → en scrollant vers le haut, on ne bascule sur la fiche du dessus que quand
-//   elle occupe déjà la majeure partie de l'écran (bascule volontairement tardive).
-const ACTIVE_LINE=0.8;
+// Surlignage de la fiche active avec HYSTÉRÈSE (bascule tardive dans les 2 sens).
+// On ne change de fiche que lorsque la fiche entrante occupe déjà ~80% de l'écran :
+//  - vers le BAS : on passe à la suivante quand SON haut atteint 20% (TOP_LINE)
+//  - vers le HAUT : on revient à la précédente quand le haut de l'active atteint 80% (BOT_LINE)
+const TOP_LINE=0.2, BOT_LINE=0.8;
+let activeIdx=0;
 function setActiveItem(id){navitems.forEach(a=>a.classList.toggle('active', a.getAttribute('href')==='#'+id));}
 function updateActive(){
-  if(searching) return;
-  const line=innerHeight*ACTIVE_LINE;
-  let cur=null;
-  for(const f of fiches){ if(f.getBoundingClientRect().top<=line) cur=f; else break; }
-  if(cur) setActiveItem(cur.id); else navitems.forEach(a=>a.classList.remove('active'));
+  if(searching || !fiches.length) return;
+  const H=innerHeight, top=H*TOP_LINE, bot=H*BOT_LINE;
+  while(activeIdx<fiches.length-1 && fiches[activeIdx+1].getBoundingClientRect().top<=top) activeIdx++;
+  while(activeIdx>0 && fiches[activeIdx].getBoundingClientRect().top>=bot) activeIdx--;
+  if(activeIdx===0 && fiches[0].getBoundingClientRect().top>bot){navitems.forEach(a=>a.classList.remove('active'));return;}
+  setActiveItem(fiches[activeIdx].id);
 }
-navitems.forEach(a=>a.addEventListener('click',()=>setActiveItem(a.getAttribute('href').slice(1))));
+navitems.forEach(a=>a.addEventListener('click',()=>{const id=a.getAttribute('href').slice(1);const i=fiches.findIndex(f=>f.id===id);if(i>=0)activeIdx=i;setActiveItem(id);}));
 let ticking=false;
 addEventListener('scroll',()=>{if(!ticking){ticking=true;requestAnimationFrame(()=>{updateActive();ticking=false;});}},{passive:true});
 updateActive();
