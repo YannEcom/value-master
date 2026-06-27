@@ -3585,10 +3585,10 @@ navcats.forEach(c=>{
 });
 
 // Surlignage de la fiche active (scrollspy) : la fiche active est la DERNIÈRE
-// dont le haut est passé au-dessus d'une ligne à ~45% de la hauteur de l'écran.
+// dont le haut est passé au-dessus d'une ligne BASSE (~80% de la hauteur).
 // → en scrollant vers le haut, on ne bascule sur la fiche du dessus que quand
-//   elle occupe vraiment ~la moitié haute de l'écran (pas dès qu'elle pointe).
-const ACTIVE_LINE=0.45;
+//   elle occupe déjà la majeure partie de l'écran (bascule volontairement tardive).
+const ACTIVE_LINE=0.8;
 function setActiveItem(id){navitems.forEach(a=>a.classList.toggle('active', a.getAttribute('href')==='#'+id));}
 function updateActive(){
   if(searching) return;
